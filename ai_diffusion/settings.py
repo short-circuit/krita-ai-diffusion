@@ -118,6 +118,13 @@ class Settings(QObject):
         _("Server URL"),
         "127.0.0.1:8188",
         _("URL used to connect to a running ComfyUI server. Default is 127.0.0.1:8188 (local)."),
+    )   
+    
+    server_api_key: str
+    _server_api_key = Setting(
+        _("Server API Key"),
+        "sk-1234",
+        _("API Key if needed for ComfyUI."),
     )
 
     server_backend: ServerBackend

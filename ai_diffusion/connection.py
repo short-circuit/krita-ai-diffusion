@@ -13,6 +13,7 @@ from .properties import Property, ObservableProperties
 from .resources import MissingResource
 from .localization import translate as _
 from . import util, eventloop
+from .util import client_logger as log
 
 
 class ConnectionState(Enum):
@@ -87,7 +88,11 @@ class Connection(QObject, ObservableProperties):
                     return
                 self._client = await CloudClient.connect(CloudClient.default_api_url, access_token)
             else:
-                self._client = await ComfyClient.connect(url)
+                if not access_token:
+                    self._client = await ComfyClient.connect(url)
+                else:
+                    log.info(f"URL {url}, access token {access_token}")
+                    self._client = await ComfyClient.connect(url, access_token)
 
             apply_performance_preset(settings, self._client.device_info)
             if self._task is None:
@@ -110,10 +115,19 @@ class Connection(QObject, ObservableProperties):
             self.error = util.log_error(e)
             self.state = ConnectionState.error
 
+    def escape_string(input_string):
+        return ''.join(['\\' + c if c in {'$', '\\', '"'} else c for c in input_string])
+
     def connect(self):
-        eventloop.run(
-            self._connect(settings.server_url, settings.server_mode, settings.access_token)
-        )
+        log.info(f"API KEY {settings.server_api_key}")
+        if settings.server_api_key:
+            eventloop.run(
+                self._connect(settings.server_url, settings.server_mode, settings.server_api_key)
+            )
+        else:
+            eventloop.run(
+                self._connect(settings.server_url, settings.server_mode, settings.access_token)
+            )
 
     async def disconnect(self):  # type: ignore (hides QObject.disconnect)
         if self._task is not None:

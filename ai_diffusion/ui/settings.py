@@ -238,14 +238,23 @@ class ConnectionSettings(SettingsTab):
         connection_layout = QVBoxLayout()
         self._connection_widget.setLayout(connection_layout)
 
+        add_header(connection_layout, Settings._server_api_key)
+        api_layout = QHBoxLayout()
+        self._server_api_key = QLineEdit(self._connection_widget)
+        self._server_api_key.textChanged.connect(self.write)
+        api_layout.addWidget(self._server_api_key)
+
         add_header(connection_layout, Settings._server_url)
         server_layout = QHBoxLayout()
         self._server_url = QLineEdit(self._connection_widget)
         self._server_url.textChanged.connect(self.write)
         server_layout.addWidget(self._server_url)
+
         self._connect_button = QPushButton(_("Connect"), self._connection_widget)
         self._connect_button.clicked.connect(self._connect)
         server_layout.addWidget(self._connect_button)
+        
+        connection_layout.addLayout(api_layout)
         connection_layout.addLayout(server_layout)
 
         self._connection_status = QLabel(self._connection_widget)
@@ -309,10 +318,12 @@ class ConnectionSettings(SettingsTab):
     def _read(self):
         self.server_mode = settings.server_mode
         self._server_url.setText(settings.server_url)
+        self._server_api_key.setText(settings.server_api_key)
 
     def _write(self):
         settings.server_mode = self.server_mode
         settings.server_url = self._server_url.text()
+        settings.server_api_key = self._server_api_key.text()
 
     def _change_server_mode(self, checked: bool):
         if self._server_cloud.isChecked():

@@ -88,8 +88,9 @@ class ComfyClient(Client):
 
     default_url = "http://127.0.0.1:8188"
 
-    def __init__(self, url):
+    def __init__(self, url, token):
         self.url = url
+        self.token = token
         self.models = ClientModels()
         self._requests = RequestManager()
         self._id = str(uuid.uuid4())
@@ -103,8 +104,7 @@ class ComfyClient(Client):
 
     @staticmethod
     async def connect(url=default_url, access_token=""):
-        client = ComfyClient(parse_url(url))
-        log.info(f"Connecting to {client.url}")
+        client = ComfyClient(parse_url(url), access_token)
 
         # Retrieve system info
         client.device_info = DeviceInfo.parse(await client._get("system_stats"))
@@ -112,8 +112,11 @@ class ComfyClient(Client):
 
         # Try to establish websockets connection
         wsurl = websocket_url(client.url)
-        try:
-            async with websockets_client.connect(f"{wsurl}/ws?clientId={client._id}"):
+        try: 
+            header = {
+                "Authorization": f"Bearer {access_token}" 
+            }
+            async with websockets_client.connect(f"{wsurl}/ws?clientId={client._id}", extra_headers=header):
                 pass
         except Exception as e:
             msg = _("Could not establish websocket connection at") + f" {wsurl}: {str(e)}"
@@ -183,10 +186,10 @@ class ComfyClient(Client):
         return client
 
     async def _get(self, op: str):
-        return await self._requests.get(f"{self.url}/{op}")
+        return await self._requests.get(f"{self.url}/{op}",self.token)
 
     async def _post(self, op: str, data: dict):
-        return await self._requests.post(f"{self.url}/{op}", data)
+        return await self._requests.post(f"{self.url}/{op}", data, self.token)
 
     async def enqueue(self, work: WorkflowInput, front: bool = False):
         job = JobInfo.create(work, front=front)
